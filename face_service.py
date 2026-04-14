@@ -31,4 +31,5 @@ async def embedding(image: UploadFile = File(...)):
 
     finally:
         os.remove(temp_path)
+
         
