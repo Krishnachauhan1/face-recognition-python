@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+deepface
+opencv-python-headless
+tensorflow==2.15.0
+tf-keras==2.15.0
+python-multipart
+numpy
