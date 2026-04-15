@@ -5,7 +5,6 @@ import os
 
 app = FastAPI()
 
-
 @app.post("/embedding")
 async def embedding(image: UploadFile = File(...)):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp:
