@@ -2,7 +2,7 @@ fastapi
 uvicorn
 deepface
 opencv-python-headless
-tensorflow==2.15.0
-tf-keras==2.15.0
+tensorflow
+tf-keras
 python-multipart
 numpy
