@@ -1,10 +1,10 @@
-"""Download Facenet512 weights during Render build (not at request time)."""
+"""Download InsightFace weights during Render build."""
 import os
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
+os.environ.setdefault("FACE_MODEL", "buffalo_sc")
 
-from deepface import DeepFace
+from insightface.app import FaceAnalysis
 
-DeepFace.build_model("Facenet512")
-print("Facenet512 ready")
+analyzer = FaceAnalysis(name="buffalo_sc", providers=["CPUExecutionProvider"])
+analyzer.prepare(ctx_id=-1, det_size=(320, 320))
+print("buffalo_sc ready")
