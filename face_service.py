@@ -3,6 +3,8 @@ import tempfile
 import asyncio
 from functools import lru_cache
 
+import numpy as np
+from PIL import Image
 from fastapi import FastAPI, File, UploadFile, HTTPException
 
 _MODEL_NAME = os.getenv("FACE_MODEL", "buffalo_sc")
@@ -10,10 +12,33 @@ _MAX_IMAGE_SIDE = int(os.getenv("FACE_MAX_IMAGE_SIDE", "640"))
 _MODELS_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
 
 
-def _import_cv2():
-    import cv2
+def _rgb_to_bgr(rgb: np.ndarray) -> np.ndarray:
+    return rgb[:, :, ::-1].copy()
 
-    return cv2
+
+def _load_bgr(image_path: str) -> np.ndarray:
+    try:
+        rgb = np.asarray(Image.open(image_path).convert("RGB"))
+    except Exception as exc:
+        raise ValueError("Invalid image file") from exc
+
+    if rgb.size == 0:
+        raise ValueError("Invalid image file")
+
+    return _rgb_to_bgr(rgb)
+
+
+def _resize_bgr(bgr: np.ndarray) -> np.ndarray:
+    height, width = bgr.shape[:2]
+    longest = max(height, width)
+    if longest <= _MAX_IMAGE_SIDE:
+        return bgr
+
+    scale = _MAX_IMAGE_SIDE / longest
+    new_size = (int(width * scale), int(height * scale))
+    rgb = Image.fromarray(bgr[:, :, ::-1])
+    rgb = rgb.resize(new_size, Image.Resampling.LANCZOS)
+    return _rgb_to_bgr(np.asarray(rgb))
 
 
 @lru_cache(maxsize=1)
@@ -30,44 +55,17 @@ def _face_analyzer():
     return analyzer
 
 
-def _prepare_image(image_path: str) -> str:
-    cv2 = _import_cv2()
-    image = cv2.imread(image_path)
-    if image is None:
-        raise ValueError("Invalid image file")
-
-    height, width = image.shape[:2]
-    longest = max(height, width)
-    if longest > _MAX_IMAGE_SIDE:
-        scale = _MAX_IMAGE_SIDE / longest
-        image = cv2.resize(
-            image,
-            (int(width * scale), int(height * scale)),
-            interpolation=cv2.INTER_AREA,
-        )
-
-    resized_path = f"{image_path}.resized.jpg"
-    cv2.imwrite(resized_path, image, [cv2.IMWRITE_JPEG_QUALITY, 85])
-    return resized_path
-
-
 def _extract_embedding(image_path: str) -> list[float]:
-    cv2 = _import_cv2()
-    resized_path = _prepare_image(image_path)
-    try:
-        image = cv2.imread(resized_path)
-        faces = _face_analyzer().get(image)
-        if not faces:
-            raise ValueError("No face detected in the image. Use a clear front-facing photo.")
+    bgr = _resize_bgr(_load_bgr(image_path))
+    faces = _face_analyzer().get(bgr)
+    if not faces:
+        raise ValueError("No face detected in the image. Use a clear front-facing photo.")
 
-        embedding = faces[0].normed_embedding
-        if embedding is None:
-            raise ValueError("Could not generate face embedding")
+    embedding = faces[0].normed_embedding
+    if embedding is None:
+        raise ValueError("Could not generate face embedding")
 
-        return embedding.tolist()
-    finally:
-        if os.path.exists(resized_path):
-            os.remove(resized_path)
+    return embedding.tolist()
 
 
 app = FastAPI(title="HRMS Face Embedding Service")
