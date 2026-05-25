@@ -1,7 +1,6 @@
 import os
 import tempfile
 import asyncio
-from contextlib import asynccontextmanager
 from functools import lru_cache
 
 import cv2
@@ -9,14 +8,17 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 
 _MODEL_NAME = os.getenv("FACE_MODEL", "buffalo_sc")
 _MAX_IMAGE_SIDE = int(os.getenv("FACE_MAX_IMAGE_SIDE", "640"))
+_MODELS_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
 
 
 @lru_cache(maxsize=1)
 def _face_analyzer():
     from insightface.app import FaceAnalysis
 
+    os.makedirs(_MODELS_ROOT, exist_ok=True)
     analyzer = FaceAnalysis(
         name=_MODEL_NAME,
+        root=_MODELS_ROOT,
         providers=["CPUExecutionProvider"],
     )
     analyzer.prepare(ctx_id=-1, det_size=(320, 320))
@@ -61,14 +63,7 @@ def _extract_embedding(image_path: str) -> list[float]:
             os.remove(resized_path)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Warm up model at startup so first /embedding request is fast.
-    await asyncio.to_thread(_face_analyzer)
-    yield
-
-
-app = FastAPI(title="HRMS Face Embedding Service", lifespan=lifespan)
+app = FastAPI(title="HRMS Face Embedding Service")
 
 
 @app.get("/")
