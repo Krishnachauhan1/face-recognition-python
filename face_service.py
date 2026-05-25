@@ -3,12 +3,17 @@ import tempfile
 import asyncio
 from functools import lru_cache
 
-import cv2
 from fastapi import FastAPI, File, UploadFile, HTTPException
 
 _MODEL_NAME = os.getenv("FACE_MODEL", "buffalo_sc")
 _MAX_IMAGE_SIDE = int(os.getenv("FACE_MAX_IMAGE_SIDE", "640"))
 _MODELS_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+
+
+def _import_cv2():
+    import cv2
+
+    return cv2
 
 
 @lru_cache(maxsize=1)
@@ -26,6 +31,7 @@ def _face_analyzer():
 
 
 def _prepare_image(image_path: str) -> str:
+    cv2 = _import_cv2()
     image = cv2.imread(image_path)
     if image is None:
         raise ValueError("Invalid image file")
@@ -46,6 +52,7 @@ def _prepare_image(image_path: str) -> str:
 
 
 def _extract_embedding(image_path: str) -> list[float]:
+    cv2 = _import_cv2()
     resized_path = _prepare_image(image_path)
     try:
         image = cv2.imread(resized_path)
