@@ -5,7 +5,4 @@ description = "HRMS face embedding API (FastAPI + InsightFace)"
 requires-python = ">=3.10"
 
 [tool.vercel]
-entrypoint = "face_service:app"
-
-[tool.vercel.scripts]
-build = "python preload_model.py"
+entrypoint = "app:app"
