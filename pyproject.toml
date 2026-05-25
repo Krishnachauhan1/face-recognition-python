@@ -13,8 +13,8 @@ dependencies = [
     "insightface==0.7.3",
 ]
 
+# FastAPI entrypoint for Vercel (if you deploy there).
+# NOTE: Full InsightFace stack usually exceeds Vercel's 500MB function limit.
+# Use Render (render.yaml) for production face recognition.
 [tool.vercel]
 entrypoint = "app:app"
-
-[tool.vercel.scripts]
-build = "python preload_model.py"

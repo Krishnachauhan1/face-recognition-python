@@ -9,7 +9,11 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 
 _MODEL_NAME = os.getenv("FACE_MODEL", "buffalo_sc")
 _MAX_IMAGE_SIDE = int(os.getenv("FACE_MAX_IMAGE_SIDE", "640"))
-_MODELS_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+_DEFAULT_MODELS_ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+# Serverless (Vercel): use /tmp so weights are not bundled in the deployment zip.
+_MODELS_ROOT = os.getenv("FACE_MODELS_ROOT") or (
+    "/tmp/insightface_models" if os.getenv("VERCEL") else _DEFAULT_MODELS_ROOT
+)
 
 
 def _rgb_to_bgr(rgb: np.ndarray) -> np.ndarray:
